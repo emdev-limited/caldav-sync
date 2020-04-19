@@ -1,0 +1,6 @@
+Bundle-Name: CalDAV Calendar Hook
+Bundle-SymbolicName: it.smc.calendar.caldav.hook
+Bundle-Version: 3.0.0
+
+Fragment-Host: com.liferay.calendar.web;bundle-version="[3.0.0,4.0.0)"
+-sources: true

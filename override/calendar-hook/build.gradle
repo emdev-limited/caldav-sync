@@ -3,5 +3,4 @@ dependencies {
     compileOnly project(":modules:caldav-sync:caldav-helper-service")
 
     compileOnly group: "com.liferay", name: "com.liferay.calendar.web"
-    compileOnly project(":modules:caldav-sync:caldav-sync-web")
 }

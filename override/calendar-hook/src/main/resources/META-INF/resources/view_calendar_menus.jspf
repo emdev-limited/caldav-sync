@@ -405,6 +405,24 @@ String backURL = PortalUtil.getCurrentURL(request);
 					id: 'subscribe'
 				},
 			</c:if>
+	
+	<!-- BEGIN ICal links -->
+			{
+				caption: "<liferay-ui:message key="caldav-sync-link"/>",
+				id: "icalSyncLink",
+				fn: function(event) {
+					var instance = this;
+					var calendarList = instance.get('host');
+					var calendar = calendarList.activeItem;
+					var template = '<%= portalURL %>' + '/webdav/{calendarResourceId}/calendar/{calendarId}/';
+					var url = template.replace("{calendarResourceId}", calendar.get('calendarResourceId')).
+					replace("{calendarId}", calendar.get('calendarId'));
+					window.open(url, '_blank');
+	
+					instance.set('visible', false);
+				}
+			},
+	<!-- END Add ICal links -->
 
 			{
 				caption: '-',

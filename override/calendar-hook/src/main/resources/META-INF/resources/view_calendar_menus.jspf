@@ -16,6 +16,9 @@
 
 <%
 String backURL = PortalUtil.getCurrentURL(request);
+// BEGIN  ICal links
+String portalURL = PortalUtil.getPortalURL(request);
+// END ICal links
 %>
 
 <aui:script use="aui-toggler,calendar,liferay-calendar-simple-color-picker,liferay-calendar-simple-menu,liferay-calendar-util">

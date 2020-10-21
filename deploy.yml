@@ -1,0 +1,133 @@
+---
+- name: Deploy Caldav
+  hosts: "{{ host }}"
+
+  vars:
+    liferay_version: "{{ liferay_v }}"
+    portal_folder: "/opt/liferay"
+    art_fdr: "/home/{{ user }}/{{ timestamp }}/archive"           # Для Jenkins art_fdr="."
+    timestamp: "{{ tstamp.stdout[0:10] }}"
+    j_user: "{{ lookup('env', 'INCOMAND_JENKINS_USER') }}"
+    j_pass: "{{ lookup('env', 'INCOMAND_JENKINS_TOKEN') }}"
+
+  vars_prompt:
+    - name: tomcat_V
+      prompt: "Версия tomcat"
+      private: no
+    - name: user
+      prompt: "Имя sudo пользователя"
+      private: no
+    - name: group
+      prompt: "Имя группы"
+      private: no
+    - name: job
+      prompt: "Номер сборки jenkins"
+      private: no
+
+  tasks:
+
+
+#-------------------------------------------------------------------------------
+
+#                         Получение системной даты
+
+#-------------------------------------------------------------------------------
+
+
+  - name: Получение даты
+    shell: "date +%s"
+    register: tstamp
+    tags: local
+
+
+#-------------------------------------------------------------------------------
+
+#                     Получение файлов из сборки Jenkins
+
+#-------------------------------------------------------------------------------
+
+
+  - name: Создание папки для артефактов
+    file:
+      path: /home/{{ user }}/{{ timestamp }}
+      state: directory
+      owner: "{{ user }}"
+      group: "{{ group }}"
+      mode: '0755'
+    tags: local
+
+  - name: Получение архива сборки
+    shell: wget -P /home/{{ user }}/{{ timestamp }} --auth-no-challenge --http-user={{ j_user }} --http-password={{ j_pass }} https://build.emdev.ru/jenkins/job/caldav-sync/{{ job }}/artifact/*zip*/archive.zip
+    tags: local
+
+  - name: Распаковка архива
+    unarchive:
+      src: /home/{{ user }}/{{ timestamp }}/archive.zip
+      dest: /home/{{ user }}/{{ timestamp }}
+    tags: local
+
+
+#-------------------------------------------------------------------------------
+
+#                        Удаление файлов с сервера
+
+#-------------------------------------------------------------------------------
+
+
+  - name: Подготовка файлов для удаления из osgi/modules
+    find:
+      paths: "{{ portal_folder }}/osgi/modules"
+      patterns:
+        - 'it.smc.calendar.caldav.*.jar'
+    register: files_to_delete
+
+  - name: Удаление файлов из osgi/modules
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ files_to_delete.files }}"
+
+  - pause:
+      prompt: "Применение изменений"
+      seconds: 40
+
+
+#-------------------------------------------------------------------------------
+
+#                        Копирование файлов на сервер
+
+#-------------------------------------------------------------------------------
+
+
+  - name: Копирование новых файлов из /bundles/osgi/modules
+    find:
+      paths: "{{ art_fdr }}/bundles/osgi/modules"
+      patterns:
+        - 'it.smc.calendar.caldav.*.jar'
+      recurse: yes
+    register: output
+    delegate_to: localhost
+
+  - name: Копирование в /deploy
+    copy:
+      src: "{{ item.path }}"
+      dest: "{{ portal_folder }}/deploy"
+      owner: "{{ user }}"
+      group: "{{ group }}"
+      mode: '0755'
+    with_items: "{{ output.files }}"
+    tags: copy_files
+
+
+#-------------------------------------------------------------------------------
+
+#                         Удаление временной папки
+
+#-------------------------------------------------------------------------------
+
+
+  - name: Удаление папки с артефактами сборки
+    file:
+      path: /home/{{ user }}/{{ timestamp }}
+      state: absent
+    tags: local
